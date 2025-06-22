@@ -124,14 +124,9 @@ function playSong() {
     audioPlayer.play();
 }
 
-audioPlayer.muted = true;
+// 初始化
 initPlaylist();
 playSong();
-
-document.addEventListener('click', function firstPlay() {
-    audioPlayer.muted = false;
-    document.removeEventListener('click', firstPlay);
-});
 </script>
 </body>
 </html>
