@@ -262,12 +262,12 @@
 
     <!-- 多个音频元素 -->
     <audio id="audioPlayer" preload="auto" loop>
-        <source src="test-audio.wav" type="audio/wav">
+        <source src="http://music.163.com/song/media/outer/url?id=447925558.mp3" type="audio/mpeg">
         您的浏览器不支持音频播放。
     </audio>
 
     <audio id="audioPlayerMuted" preload="auto" loop muted>
-        <source src="test-audio.wav" type="audio/wav">
+        <source src="http://music.163.com/song/media/outer/url?id=447925558.mp3" type="audio/mpeg">
     </audio>
 
     <script>
@@ -304,7 +304,6 @@
         function renderStrategies() {
             strategyResults.innerHTML = '<strong>策略测试结果:</strong><br>';
             Object.keys(strategies).forEach(name => {
-                const strategy = strategies[name];
                 const div = document.createElement('div');
                 div.className = `strategy-status ${strategy.result}`;
                 const icon = strategy.result === 'success' ? '✅' : 
@@ -521,6 +520,7 @@
             } catch (error) {
                 log('❌ 手动播放失败: ' + error.message);
                 updateStatus('❌ 播放失败: ' + error.message);
+                showClickOverlay(); // 确保播放失败时显示遮罩
             }
         }
 
@@ -565,6 +565,7 @@
                 log('✅ 解除静音，音乐开始播放');
                 updateStatus('🎵 音乐正在播放');
             } else if (audioPlayer.paused && audioPlayerMuted.paused) {
+                // 如果音频暂停，开始播放
                 playMusic();
             }
         }
@@ -581,7 +582,11 @@
                 audio.addEventListener('canplay', () => log(`音频${index + 1}可以播放`));
                 audio.addEventListener('play', () => log(`音频${index + 1}开始播放`));
                 audio.addEventListener('pause', () => log(`音频${index + 1}暂停`));
-                audio.addEventListener('error', (e) => log(`音频${index + 1}错误`));
+                audio.addEventListener('error', (e) => {
+                    log(`音频${index + 1}错误: ${e.message || e.name || '未知错误'}`);
+                    updateStatus('❌ 播放错误，请尝试点击播放');
+                    showClickOverlay(); // 确保错误时显示遮罩
+                });
             });
             
             // 延迟启动播放尝试
@@ -611,7 +616,8 @@
         document.addEventListener('WeixinJSBridgeReady', function() {
             log('🔗 微信JS桥接准备就绪');
             wechatAPIReady = true;
-            wechatStrategy1_JSBridge();
+            // 在WeixinJSBridgeReady后立即尝试微信API播放
+            tryWeChatMethods(); 
         });
 
         // 页面可见性变化处理
