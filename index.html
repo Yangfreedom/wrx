@@ -303,10 +303,11 @@
 
         function renderStrategies() {
             strategyResults.innerHTML = '<strong>策略测试结果:</strong><br>';
-            Object.keys(strategies).forEach(name => {
+             Object.keys(strategies).forEach(name => {
+                const strategy = strategies[name];
                 const div = document.createElement('div');
                 div.className = `strategy-status ${strategy.result}`;
-                const icon = strategy.result === 'success' ? '✅' : 
+                const icon = strategy.result === 'success' ? '✅' :
                            strategy.result === 'failed' ? '❌' : '⏳';
                 div.innerHTML = `<span>${icon} ${name}</span><small>${strategy.message}</small>`;
                 strategyResults.appendChild(div);
