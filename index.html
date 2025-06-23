@@ -3,130 +3,681 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>音乐播放器</title>
+    <title>增强版自动播放音乐播放器</title>
     <style>
-body {
-    font-family: Arial, sans-serif;
-    margin: 0;
-    padding: 20px;
-    background-color: #f5f5f5;
-}
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
 
-.player-container {
-    max-width: 600px;
-    margin: 0 auto;
-    background: white;
-    padding: 20px;
-    border-radius: 10px;
-    box-shadow: 0 0 10px rgba(0,0,0,0.1);
-}
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            overflow-x: hidden;
+        }
 
-.visualizer {
-    height: 100px;
-    background: linear-gradient(to right, #ff758c, #ff7eb3);
-    margin: 20px 0;
-    border-radius: 5px;
-}
+        .player-container {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 40px;
+            text-align: center;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            max-width: 600px;
+            width: 90%;
+        }
 
-.controls {
-    display: flex;
-    justify-content: center;
-    gap: 10px;
-    margin: 20px 0;
-}
+        .title {
+            font-size: 2.5em;
+            margin-bottom: 20px;
+            background: linear-gradient(45deg, #fff, #f0f0f0);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
 
-button {
-    padding: 8px 16px;
-    background: #4CAF50;
-    color: white;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-}
+        .subtitle {
+            font-size: 1.2em;
+            margin-bottom: 30px;
+            opacity: 0.8;
+        }
 
-button:hover {
-    background: #45a049;
-}
+        .status {
+            background: rgba(255, 255, 255, 0.2);
+            padding: 15px;
+            border-radius: 10px;
+            margin: 20px 0;
+            font-size: 1.1em;
+        }
 
-.playlist {
-    margin-top: 20px;
-}
+        .controls {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin: 30px 0;
+            flex-wrap: wrap;
+        }
 
-#song-list {
-    list-style: none;
-    padding: 0;
-}
+        .btn {
+            background: linear-gradient(45deg, #ff6b6b, #ee5a24);
+            border: none;
+            color: white;
+            padding: 12px 25px;
+            border-radius: 50px;
+            cursor: pointer;
+            font-size: 0.9em;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+            min-width: 120px;
+        }
 
-#song-list li {
-    padding: 8px;
-    border-bottom: 1px solid #ddd;
-    cursor: pointer;
-}
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+        }
 
-#song-list li:hover {
-    background: #f0f0f0;
-}
-</style>
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .btn.secondary {
+            background: linear-gradient(45deg, #4ecdc4, #44a08d);
+        }
+
+        .btn.warning {
+            background: linear-gradient(45deg, #f39c12, #e67e22);
+        }
+
+        .volume-control {
+            margin: 20px 0;
+        }
+
+        .volume-slider {
+            width: 100%;
+            height: 5px;
+            border-radius: 5px;
+            background: rgba(255, 255, 255, 0.3);
+            outline: none;
+            -webkit-appearance: none;
+        }
+
+        .volume-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #ff6b6b;
+            cursor: pointer;
+        }
+
+        .volume-slider::-moz-range-thumb {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #ff6b6b;
+            cursor: pointer;
+            border: none;
+        }
+
+        .debug-info {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 20px;
+            font-size: 0.8em;
+            text-align: left;
+            max-height: 250px;
+            overflow-y: auto;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: #fff;
+            animation: spin 1s ease-in-out infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .click-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            cursor: pointer;
+        }
+
+        .click-message {
+            background: white;
+            color: #333;
+            padding: 30px;
+            border-radius: 15px;
+            text-align: center;
+            font-size: 1.2em;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            max-width: 400px;
+        }
+
+        .strategy-list {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 15px;
+            border-radius: 10px;
+            margin: 20px 0;
+            text-align: left;
+        }
+
+        .strategy-item {
+            margin: 5px 0;
+            padding: 5px;
+            border-radius: 5px;
+            transition: background 0.3s;
+        }
+
+        .strategy-item.success {
+            background: rgba(46, 204, 113, 0.3);
+        }
+
+        .strategy-item.failed {
+            background: rgba(231, 76, 60, 0.3);
+        }
+
+        .strategy-item.pending {
+            background: rgba(241, 196, 15, 0.3);
+        }
+
+        .audio-visualizer {
+            width: 100%;
+            height: 60px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            margin: 20px 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+
+        .visualizer-bar {
+            width: 4px;
+            background: linear-gradient(to top, #ff6b6b, #4ecdc4);
+            margin: 0 1px;
+            border-radius: 2px;
+            transition: height 0.1s ease;
+        }
+    </style>
 </head>
 <body>
     <div class="player-container">
-        <h1>音乐播放器</h1>
-        <div class="visualizer"></div>
-        <audio id="audio-player" controls></audio>
-        <div class="controls">
-            <button id="play-btn">播放</button>
-            <button id="pause-btn">暂停</button>
-            <button id="prev-btn">上一首</button>
-            <button id="next-btn">下一首</button>
-            <input type="range" id="volume-slider" min="0" max="1" step="0.1" value="0.7">
+        <h1 class="title">🎵 增强版音乐播放器</h1>
+        <p class="subtitle">多策略自动播放测试</p>
+        
+        <div class="status" id="status">
+            <span class="loading"></span> 正在初始化...
         </div>
-        <div class="playlist">
-            <h2>播放列表</h2>
-            <ul id="song-list"></ul>
+
+        <div class="audio-visualizer" id="visualizer">
+            <!-- 音频可视化条 -->
+        </div>
+
+        <div class="controls">
+            <button class="btn" id="playBtn" onclick="playMusic()">▶️ 播放</button>
+            <button class="btn secondary" id="pauseBtn" onclick="pauseMusic()">⏸️ 暂停</button>
+            <button class="btn warning" id="forceBtn" onclick="forcePlay()">🚀 强制播放</button>
+            <button class="btn secondary" id="testBtn" onclick="runAllTests()">🧪 测试所有策略</button>
+        </div>
+
+        <div class="volume-control">
+            <label>音量控制:</label><br>
+            <input type="range" class="volume-slider" id="volumeSlider" min="0" max="1" step="0.1" value="0.7" onchange="changeVolume(this.value)">
+            <span id="volumeDisplay">70%</span>
+        </div>
+
+        <div class="strategy-list" id="strategyList">
+            <strong>自动播放策略测试:</strong>
+            <div id="strategies"></div>
+        </div>
+
+        <div class="debug-info" id="debugInfo">
+            <strong>调试信息:</strong><br>
+            <div id="debugLog"></div>
         </div>
     </div>
+
+    <!-- 点击遮罩层 -->
+    <div class="click-overlay" id="clickOverlay" style="display: none;">
+        <div class="click-message">
+            <h2>🎵 点击任意位置开始播放音乐</h2>
+            <p>由于浏览器限制，需要用户交互才能播放音频</p>
+            <p><small>检测到的环境: <span id="envDisplay"></span></small></p>
+        </div>
+    </div>
+
+    <!-- 多个音频元素用于不同策略 -->
+    <audio id="audioPlayer" preload="auto" loop>
+        <source src="test-audio.wav" type="audio/wav">
+        您的浏览器不支持音频播放。
+    </audio>
+
+    <audio id="audioPlayer2" preload="auto" loop muted>
+        <source src="test-audio.wav" type="audio/wav">
+    </audio>
+
     <script>
-const songs = [
-    {
-        title: '示例音乐1',
-        src: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3'
-    },
-    {
-        title: '示例音乐2',
-        src: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3'
-    }
-];
+        let audioPlayer = document.getElementById('audioPlayer');
+        let audioPlayer2 = document.getElementById('audioPlayer2');
+        let status = document.getElementById('status');
+        let debugLog = document.getElementById('debugLog');
+        let clickOverlay = document.getElementById('clickOverlay');
+        let envDisplay = document.getElementById('envDisplay');
+        let strategies = document.getElementById('strategies');
+        let visualizer = document.getElementById('visualizer');
+        
+        let autoplayAttempted = false;
+        let userInteracted = false;
+        let currentEnvironment = '';
+        let strategyResults = {};
 
-const audioPlayer = document.getElementById('audio-player');
-const playBtn = document.getElementById('play-btn');
-const pauseBtn = document.getElementById('pause-btn');
-const prevBtn = document.getElementById('prev-btn');
-const nextBtn = document.getElementById('next-btn');
-const volumeSlider = document.getElementById('volume-slider');
-const songList = document.getElementById('song-list');
+        // 创建音频可视化器
+        function createVisualizer() {
+            for (let i = 0; i < 50; i++) {
+                const bar = document.createElement('div');
+                bar.className = 'visualizer-bar';
+                bar.style.height = '10px';
+                visualizer.appendChild(bar);
+            }
+        }
 
-let currentSongIndex = 0;
+        // 更新音频可视化器
+        function updateVisualizer() {
+            const bars = visualizer.querySelectorAll('.visualizer-bar');
+            bars.forEach((bar, index) => {
+                const height = Math.random() * 50 + 10;
+                bar.style.height = height + 'px';
+            });
+        }
 
-function initPlaylist() {
-    songs.forEach((song, index) => {
-        const li = document.createElement('li');
-        li.textContent = song.title;
-        li.addEventListener('click', () => {
-            currentSongIndex = index;
-            playSong();
+        function log(message) {
+            console.log(message);
+            const timestamp = new Date().toLocaleTimeString();
+            debugLog.innerHTML += `${timestamp}: ${message}<br>`;
+            debugLog.scrollTop = debugLog.scrollHeight;
+        }
+
+        function updateStatus(message) {
+            status.innerHTML = message;
+        }
+
+        function updateStrategy(name, result) {
+            strategyResults[name] = result;
+            renderStrategies();
+        }
+
+        function renderStrategies() {
+            strategies.innerHTML = '';
+            Object.keys(strategyResults).forEach(name => {
+                const div = document.createElement('div');
+                div.className = `strategy-item ${strategyResults[name]}`;
+                const icon = strategyResults[name] === 'success' ? '✅' : 
+                           strategyResults[name] === 'failed' ? '❌' : '⏳';
+                div.innerHTML = `${icon} ${name}`;
+                strategies.appendChild(div);
+            });
+        }
+
+        // 检测浏览器和环境
+        function detectEnvironment() {
+            const userAgent = navigator.userAgent;
+            let env = '未知环境';
+            
+            if (userAgent.includes('MicroMessenger')) {
+                env = '微信内置浏览器';
+            } else if (userAgent.includes('QQ/')) {
+                env = 'QQ内置浏览器';
+            } else if (userAgent.includes('Chrome')) {
+                env = 'Chrome浏览器';
+            } else if (userAgent.includes('Safari') && !userAgent.includes('Chrome')) {
+                env = 'Safari浏览器';
+            } else if (userAgent.includes('Firefox')) {
+                env = 'Firefox浏览器';
+            } else if (userAgent.includes('Edge')) {
+                env = 'Edge浏览器';
+            }
+            
+            currentEnvironment = env;
+            envDisplay.textContent = env;
+            log('检测到环境: ' + env);
+            log('User Agent: ' + userAgent);
+            
+            // 检测设备类型
+            const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(userAgent);
+            log('设备类型: ' + (isMobile ? '移动设备' : '桌面设备'));
+            
+            return env;
+        }
+
+        // 策略1: 直接播放
+        async function strategy1_DirectPlay() {
+            updateStrategy('策略1: 直接播放', 'pending');
+            try {
+                audioPlayer.muted = false;
+                audioPlayer.volume = 0.7;
+                const playPromise = audioPlayer.play();
+                
+                if (playPromise !== undefined) {
+                    await playPromise;
+                    log('✅ 策略1成功: 直接播放');
+                    updateStrategy('策略1: 直接播放', 'success');
+                    return true;
+                }
+            } catch (error) {
+                log('❌ 策略1失败: ' + error.message);
+                updateStrategy('策略1: 直接播放', 'failed');
+            }
+            return false;
+        }
+
+        // 策略2: 静音播放
+        async function strategy2_MutedPlay() {
+            updateStrategy('策略2: 静音播放', 'pending');
+            try {
+                audioPlayer2.muted = true;
+                audioPlayer2.volume = 0;
+                const playPromise = audioPlayer2.play();
+                
+                if (playPromise !== undefined) {
+                    await playPromise;
+                    log('✅ 策略2成功: 静音播放');
+                    updateStrategy('策略2: 静音播放', 'success');
+                    return true;
+                }
+            } catch (error) {
+                log('❌ 策略2失败: ' + error.message);
+                updateStrategy('策略2: 静音播放', 'failed');
+            }
+            return false;
+        }
+
+        // 策略3: 微信API
+        async function strategy3_WeChatAPI() {
+            updateStrategy('策略3: 微信API', 'pending');
+            
+            if (currentEnvironment.includes('微信')) {
+                try {
+                    if (typeof WeixinJSBridge !== 'undefined') {
+                        return new Promise((resolve) => {
+                            WeixinJSBridge.invoke('getNetworkType', {}, async function(res) {
+                                log('微信网络类型: ' + res.err_msg);
+                                try {
+                                    await audioPlayer.play();
+                                    log('✅ 策略3成功: 微信API触发播放');
+                                    updateStrategy('策略3: 微信API', 'success');
+                                    resolve(true);
+                                } catch (error) {
+                                    log('❌ 策略3失败: ' + error.message);
+                                    updateStrategy('策略3: 微信API', 'failed');
+                                    resolve(false);
+                                }
+                            });
+                        });
+                    } else {
+                        log('❌ 策略3失败: 微信JS桥接不可用');
+                        updateStrategy('策略3: 微信API', 'failed');
+                    }
+                } catch (error) {
+                    log('❌ 策略3失败: ' + error.message);
+                    updateStrategy('策略3: 微信API', 'failed');
+                }
+            } else {
+                log('⚠️ 策略3跳过: 非微信环境');
+                updateStrategy('策略3: 微信API', 'failed');
+            }
+            return false;
+        }
+
+        // 策略4: 延迟播放
+        async function strategy4_DelayedPlay() {
+            updateStrategy('策略4: 延迟播放', 'pending');
+            return new Promise((resolve) => {
+                setTimeout(async () => {
+                    try {
+                        await audioPlayer.play();
+                        log('✅ 策略4成功: 延迟播放');
+                        updateStrategy('策略4: 延迟播放', 'success');
+                        resolve(true);
+                    } catch (error) {
+                        log('❌ 策略4失败: ' + error.message);
+                        updateStrategy('策略4: 延迟播放', 'failed');
+                        resolve(false);
+                    }
+                }, 3000);
+            });
+        }
+
+        // 策略5: iframe沙箱
+        async function strategy5_IframeSandbox() {
+            updateStrategy('策略5: iframe沙箱', 'pending');
+            try {
+                const iframe = document.createElement('iframe');
+                iframe.style.display = 'none';
+                iframe.allow = 'autoplay';
+                iframe.src = 'data:text/html,<audio autoplay><source src="test-audio.wav"></audio>';
+                document.body.appendChild(iframe);
+                
+                setTimeout(() => {
+                    document.body.removeChild(iframe);
+                    log('⚠️ 策略5测试完成: iframe沙箱（效果未知）');
+                    updateStrategy('策略5: iframe沙箱', 'failed');
+                }, 2000);
+            } catch (error) {
+                log('❌ 策略5失败: ' + error.message);
+                updateStrategy('策略5: iframe沙箱', 'failed');
+            }
+            return false;
+        }
+
+        // 运行所有测试策略
+        async function runAllTests() {
+            log('🧪 开始运行所有自动播放策略测试...');
+            updateStatus('🧪 正在测试所有策略...');
+            
+            const results = [];
+            results.push(await strategy1_DirectPlay());
+            results.push(await strategy2_MutedPlay());
+            results.push(await strategy3_WeChatAPI());
+            results.push(await strategy4_DelayedPlay());
+            results.push(await strategy5_IframeSandbox());
+            
+            const successCount = results.filter(r => r).length;
+            log(`📊 测试完成: ${successCount}/${results.length} 个策略成功`);
+            updateStatus(`📊 测试完成: ${successCount}/${results.length} 个策略成功`);
+        }
+
+        // 尝试自动播放
+        async function attemptAutoplay() {
+            if (autoplayAttempted) return;
+            autoplayAttempted = true;
+            
+            log('🚀 开始自动播放尝试...');
+            updateStatus('🔄 尝试自动播放...');
+            
+            // 依次尝试策略
+            if (await strategy1_DirectPlay()) {
+                updateStatus('🎵 音乐正在播放');
+                startVisualizer();
+                return true;
+            }
+            
+            if (await strategy2_MutedPlay()) {
+                updateStatus('🔇 静音播放中，点击任意位置开启声音');
+                showClickOverlay();
+                return true;
+            }
+            
+            if (await strategy3_WeChatAPI()) {
+                updateStatus('🎵 音乐正在播放（微信API）');
+                startVisualizer();
+                return true;
+            }
+            
+            // 如果所有策略都失败，显示用户交互提示
+            log('⚠️ 所有自动播放策略失败，需要用户交互');
+            updateStatus('⚠️ 需要用户交互才能播放');
+            showClickOverlay();
+            return false;
+        }
+
+        // 强制播放（用户交互后）
+        async function forcePlay() {
+            try {
+                audioPlayer.muted = false;
+                audioPlayer.volume = document.getElementById('volumeSlider').value;
+                await audioPlayer.play();
+                log('✅ 强制播放成功');
+                updateStatus('🎵 音乐正在播放');
+                hideClickOverlay();
+                startVisualizer();
+            } catch (error) {
+                log('❌ 强制播放失败: ' + error.message);
+                updateStatus('❌ 播放失败: ' + error.message);
+            }
+        }
+
+        // 显示点击遮罩
+        function showClickOverlay() {
+            clickOverlay.style.display = 'flex';
+        }
+
+        // 隐藏点击遮罩
+        function hideClickOverlay() {
+            clickOverlay.style.display = 'none';
+        }
+
+        // 启动可视化器
+        function startVisualizer() {
+            setInterval(updateVisualizer, 100);
+        }
+
+        // 用户交互处理
+        function handleUserInteraction() {
+            if (userInteracted) return;
+            userInteracted = true;
+            
+            log('👆 用户进行了交互');
+            hideClickOverlay();
+            
+            // 如果音频正在静音播放，解除静音
+            if (!audioPlayer2.paused && audioPlayer2.muted) {
+                audioPlayer2.muted = false;
+                audioPlayer2.volume = document.getElementById('volumeSlider').value;
+                log('✅ 解除静音，音乐开始播放');
+                updateStatus('🎵 音乐正在播放');
+                startVisualizer();
+            } else if (audioPlayer.paused && audioPlayer2.paused) {
+                // 如果音频暂停，开始播放
+                forcePlay();
+            }
+        }
+
+        // 播放音乐
+        async function playMusic() {
+            try {
+                audioPlayer.muted = false;
+                audioPlayer.volume = document.getElementById('volumeSlider').value;
+                await audioPlayer.play();
+                log('✅ 手动播放成功');
+                updateStatus('🎵 音乐正在播放');
+                hideClickOverlay();
+                startVisualizer();
+            } catch (error) {
+                log('❌ 手动播放失败: ' + error.message);
+                updateStatus('❌ 播放失败: ' + error.message);
+            }
+        }
+
+        // 暂停音乐
+        function pauseMusic() {
+            audioPlayer.pause();
+            audioPlayer2.pause();
+            log('⏸️ 音乐已暂停');
+            updateStatus('⏸️ 音乐已暂停');
+        }
+
+        // 改变音量
+        function changeVolume(value) {
+            audioPlayer.volume = value;
+            audioPlayer2.volume = value;
+            document.getElementById('volumeDisplay').textContent = Math.round(value * 100) + '%';
+            log('🔊 音量调整为: ' + Math.round(value * 100) + '%');
+        }
+
+        // 页面加载完成后的初始化
+        window.addEventListener('load', function() {
+            log('📱 页面加载完成');
+            detectEnvironment();
+            createVisualizer();
+            
+            // 设置音频事件监听
+            [audioPlayer, audioPlayer2].forEach((audio, index) => {
+                audio.addEventListener('loadstart', () => log(`音频${index + 1}开始加载`));
+                audio.addEventListener('loadeddata', () => log(`音频${index + 1}数据加载完成`));
+                audio.addEventListener('canplay', () => log(`音频${index + 1}可以播放`));
+                audio.addEventListener('canplaythrough', () => log(`音频${index + 1}可以完整播放`));
+                audio.addEventListener('play', () => log(`音频${index + 1}开始播放`));
+                audio.addEventListener('pause', () => log(`音频${index + 1}暂停`));
+                audio.addEventListener('ended', () => log(`音频${index + 1}播放结束`));
+                audio.addEventListener('error', (e) => log(`音频${index + 1}错误: ${e.message}`));
+            });
+            
+            // 延迟尝试自动播放
+            setTimeout(() => {
+                attemptAutoplay();
+            }, 1000);
         });
-        songList.appendChild(li);
-    });
-}
 
-function playSong() {
-    audioPlayer.src = songs[currentSongIndex].src;
-    audioPlayer.play();
-}
+        // 监听用户交互事件
+        document.addEventListener('click', handleUserInteraction);
+        document.addEventListener('touchstart', handleUserInteraction);
+        document.addEventListener('keydown', handleUserInteraction);
 
-// 初始化
-initPlaylist();
-playSong();
-</script>
+        // 点击遮罩层处理
+        clickOverlay.addEventListener('click', function() {
+            handleUserInteraction();
+        });
+
+        // 微信环境特殊处理
+        document.addEventListener('WeixinJSBridgeReady', function() {
+            log('🔗 微信JS桥接准备就绪');
+            strategy3_WeChatAPI();
+        });
+
+        // 页面可见性变化处理
+        document.addEventListener('visibilitychange', function() {
+            if (document.visibilityState === 'visible') {
+                log('👁️ 页面变为可见');
+            } else {
+                log('🙈 页面变为隐藏');
+            }
+        });
+    </script>
 </body>
 </html>
