@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>音乐播放器</title>
     <style>
         * {
@@ -13,26 +13,26 @@
 
         body {
             font-family: 'SF Pro Display', 'PingFang SC', 'Helvetica Neue', Arial, sans-serif;
-            background: linear-gradient(135deg, #1e1e1e 0%, #2d2d2d 100%);
+            background: linear-gradient(135deg, #fff9c4 0%, #ffeb3b 100%);
             min-height: 100vh;
             display: flex;
             justify-content: center;
             align-items: center;
-            color: white;
+            color: #333;
             overflow: hidden;
-            padding: 20px;
+            padding: 10px;
         }
 
         .player-container {
-            background: rgba(0, 0, 0, 0.8);
+            background: rgba(255, 255, 255, 0.85);
             backdrop-filter: blur(20px);
             border-radius: 20px;
-            padding: 30px;
+            padding: clamp(15px, 5vw, 30px);
             text-align: center;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            max-width: 400px;
+            box-shadow: 0 20px 60px rgba(255, 183, 77, 0.3);
+            border: 1px solid rgba(255, 222, 173, 0.5);
             width: 100%;
+            max-width: 400px;
             position: relative;
         }
 
@@ -46,45 +46,48 @@
         }
 
         .header-button {
-            width: 32px;
-            height: 32px;
+            width: 36px;
+            height: 36px;
             background: transparent;
             border: none;
-            color: #cccccc;
+            color: #f57c00;
             cursor: pointer;
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
             transition: all 0.2s ease;
+            -webkit-tap-highlight-color: transparent;
+            touch-action: manipulation;
         }
 
         .header-button:hover {
-            color: #ffffff;
-            background: rgba(255, 255, 255, 0.1);
+            color: #ff9800;
+            background: rgba(255, 152, 0, 0.1);
         }
 
         .header-title {
             font-size: 16px;
             font-weight: 500;
-            color: #ffffff;
+            color: #333;
         }
 
         /* 黑胶唱片区域 */
         .vinyl-section {
             position: relative;
-            margin: 40px 0;
+            margin: clamp(20px, 5vw, 40px) 0;
             display: flex;
             justify-content: center;
             align-items: center;
+            width: 100%;
         }
 
         .vinyl-disc {
-            width: 280px;
-            height: 280px;
-            background: radial-gradient(circle, #333 30%, #111 70%);
+            width: min(280px, 85vw);
+            height: min(280px, 85vw);
+            background: radial-gradient(circle, #ffecb3 30%, #ffd54f 70%);
             border-radius: 50%;
-            border: 2px solid #444;
+            border: 2px solid #ffca28;
             position: relative;
             cursor: pointer;
             transition: all 0.3s ease;
@@ -101,7 +104,7 @@
         /* 黑胶纹路 */
         .vinyl-groove {
             position: absolute;
-            border: 1px solid rgba(85, 85, 85, 0.3);
+            border: 1px solid rgba(255, 167, 38, 0.3);
             border-radius: 50%;
             top: 50%;
             left: 50%;
@@ -122,9 +125,9 @@
             transform: translate(-50%, -50%);
             width: 60px;
             height: 60px;
-            background: #000;
+            background: #fff8e1;
             border-radius: 50%;
-            border: 2px solid #333;
+            border: 2px solid #ffca28;
         }
 
         /* 专辑封面 */
@@ -133,16 +136,16 @@
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            width: 200px;
-            height: 200px;
+            width: min(200px, 60vw);
+            height: min(200px, 60vw);
             border-radius: 50%;
             border: 3px solid #fff;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
-            background: linear-gradient(135deg, #ff4757, #ff3742);
+            box-shadow: 0 8px 32px rgba(255, 193, 7, 0.3);
+            background: linear-gradient(135deg, #ffc107, #ff9800);
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 48px;
+            font-size: clamp(24px, 8vw, 48px);
             color: white;
             overflow: hidden;
         }
@@ -161,7 +164,7 @@
             right: 40px;
             width: 4px;
             height: 120px;
-            background: linear-gradient(to bottom, #ccc, #999);
+            background: linear-gradient(to bottom, #ffd180, #ffb74d);
             border-radius: 2px;
             transform-origin: top center;
             transform: rotate(25deg);
@@ -193,7 +196,7 @@
         .song-title {
             font-size: 18px;
             font-weight: 600;
-            color: #ffffff;
+            color: #333;
             margin-bottom: 8px;
             white-space: nowrap;
             overflow: hidden;
@@ -203,7 +206,7 @@
         .artist-name {
             font-size: 14px;
             font-weight: 400;
-            color: #cccccc;
+            color: #666;
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
@@ -217,17 +220,18 @@
         .progress-bar {
             position: relative;
             width: 100%;
-            height: 4px;
-            background: rgba(255, 255, 255, 0.2);
-            border-radius: 2px;
+            height: 8px;
+            background: rgba(255, 193, 7, 0.2);
+            border-radius: 4px;
             cursor: pointer;
             margin: 15px 0;
+            touch-action: none;
         }
 
         .progress-fill {
             height: 100%;
-            background: #ff4757;
-            border-radius: 2px;
+            background: #ff9800;
+            border-radius: 4px;
             width: 0%;
             transition: width 0.1s ease;
         }
@@ -236,12 +240,12 @@
             position: absolute;
             top: 50%;
             transform: translate(-50%, -50%);
-            width: 12px;
-            height: 12px;
-            background: #ff4757;
+            width: 16px;
+            height: 16px;
+            background: #ff9800;
             border: 2px solid #fff;
             border-radius: 50%;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+            box-shadow: 0 2px 8px rgba(255, 152, 0, 0.3);
             cursor: pointer;
             opacity: 0;
             transition: opacity 0.2s ease;
@@ -255,7 +259,7 @@
             display: flex;
             justify-content: space-between;
             font-size: 12px;
-            color: #999999;
+            color: #666;
             font-family: monospace;
         }
 
@@ -271,7 +275,7 @@
         .control-button {
             background: transparent;
             border: none;
-            color: #cccccc;
+            color: #f57c00;
             cursor: pointer;
             border-radius: 50%;
             display: flex;
@@ -281,81 +285,36 @@
             font-size: 20px;
             width: 44px;
             height: 44px;
+            -webkit-tap-highlight-color: transparent;
+            touch-action: manipulation;
         }
 
         .control-button:hover {
-            color: #ffffff;
+            color: #ff9800;
             transform: scale(1.1);
+        }
+
+        .control-button:active {
+            transform: scale(0.95);
+            opacity: 0.8;
         }
 
         .play-pause-button {
             width: 60px;
             height: 60px;
-            background: linear-gradient(135deg, #ff4757, #ff3742);
+            background: linear-gradient(135deg, #ff9800, #ff6d00);
             color: #fff;
             font-size: 24px;
-            box-shadow: 0 4px 20px rgba(255, 71, 87, 0.4);
+            box-shadow: 0 4px 20px rgba(255, 152, 0, 0.4);
         }
 
         .play-pause-button:hover {
             transform: scale(1.1);
-            box-shadow: 0 6px 25px rgba(255, 71, 87, 0.6);
+            box-shadow: 0 6px 25px rgba(255, 152, 0, 0.6);
         }
 
         .play-pause-button:active {
             transform: scale(0.95);
-        }
-
-        /* 音量控制 */
-        .volume-section {
-            margin: 25px 0;
-            display: flex;
-            align-items: center;
-            gap: 15px;
-        }
-
-        .volume-icon {
-            color: #cccccc;
-            font-size: 18px;
-            min-width: 20px;
-        }
-
-        .volume-slider {
-            flex: 1;
-            height: 4px;
-            background: rgba(255, 255, 255, 0.2);
-            border-radius: 2px;
-            outline: none;
-            -webkit-appearance: none;
-            cursor: pointer;
-        }
-
-        .volume-slider::-webkit-slider-thumb {
-            -webkit-appearance: none;
-            width: 12px;
-            height: 12px;
-            background: #ff4757;
-            border: 2px solid #fff;
-            border-radius: 50%;
-            cursor: pointer;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
-        }
-
-        .volume-slider::-moz-range-thumb {
-            width: 12px;
-            height: 12px;
-            background: #ff4757;
-            border: 2px solid #fff;
-            border-radius: 50%;
-            cursor: pointer;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
-        }
-
-        .volume-display {
-            color: #999999;
-            font-size: 12px;
-            min-width: 35px;
-            text-align: right;
         }
 
         /* 动画 */
@@ -382,18 +341,23 @@
         /* 响应式设计 */
         @media (max-width: 480px) {
             .player-container {
-                padding: 20px;
-                max-width: 350px;
+                padding: 15px;
+                max-width: 100%;
+                border-radius: 15px;
+            }
+            
+            .header {
+                margin-bottom: 15px;
             }
             
             .vinyl-disc {
-                width: 250px;
-                height: 250px;
+                width: min(250px, 80vw);
+                height: min(250px, 80vw);
             }
             
             .album-cover {
-                width: 180px;
-                height: 180px;
+                width: min(180px, 55vw);
+                height: min(180px, 55vw);
             }
             
             .play-pause-button {
@@ -406,6 +370,65 @@
                 width: 40px;
                 height: 40px;
                 font-size: 18px;
+            }
+            
+            .song-info {
+                margin: 20px 0;
+            }
+            
+            .song-title {
+                font-size: 16px;
+            }
+            
+            .artist-name {
+                font-size: 12px;
+            }
+            
+            .controls {
+                gap: 10px;
+            }
+        }
+        
+        @media (max-width: 360px) {
+            .player-container {
+                padding: 10px;
+            }
+            
+            .vinyl-disc {
+                width: min(220px, 75vw);
+                height: min(220px, 75vw);
+            }
+            
+            .album-cover {
+                width: min(160px, 50vw);
+                height: min(160px, 50vw);
+            }
+            
+            .play-pause-button {
+                width: 45px;
+                height: 45px;
+                font-size: 18px;
+            }
+            
+            .control-button {
+                width: 35px;
+                height: 35px;
+                font-size: 16px;
+            }
+            
+            .controls {
+                margin: 20px 0;
+                gap: 8px;
+            }
+        }
+
+        /* 适配安全区域 */
+        @supports (padding: max(0px)) {
+            body {
+                padding-left: max(10px, env(safe-area-inset-left));
+                padding-right: max(10px, env(safe-area-inset-right));
+                padding-top: max(10px, env(safe-area-inset-top));
+                padding-bottom: max(10px, env(safe-area-inset-bottom));
             }
         }
 
@@ -504,17 +527,6 @@
                 </svg>
             </button>
         </div>
-
-        <!-- 音量控制 -->
-        <div class="volume-section">
-            <div class="volume-icon" id="volumeIcon">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/>
-                </svg>
-            </div>
-            <input type="range" class="volume-slider" id="volumeSlider" min="0" max="100" value="35" onchange="changeVolume(this.value)">
-            <span class="volume-display" id="volumeDisplay">35%</span>
-        </div>
     </div>
 
     <!-- 音频元素 -->
@@ -536,6 +548,7 @@
         let isWeChatEnvironment = false;
         let currentTime = 0;
         let duration = 0;
+        let isSeeking = false;
 
         // DOM元素
         const vinylDisc = document.getElementById('vinylDisc');
@@ -544,11 +557,9 @@
         const pauseIcon = document.getElementById('pauseIcon');
         const progressFill = document.getElementById('progressFill');
         const progressThumb = document.getElementById('progressThumb');
+        const progressBar = document.getElementById('progressBar');
         const currentTimeDisplay = document.getElementById('currentTime');
         const totalTimeDisplay = document.getElementById('totalTime');
-        const volumeSlider = document.getElementById('volumeSlider');
-        const volumeDisplay = document.getElementById('volumeDisplay');
-        const volumeIcon = document.getElementById('volumeIcon');
 
         // 调试日志函数（仅在控制台输出）
         function log(message) {
@@ -604,7 +615,6 @@
                         log('用户首次交互');
                     }
                     
-                    audioPlayer.volume = volumeSlider.value / 100;
                     audioPlayer.muted = false;
                     await audioPlayer.play();
                     isPlaying = true;
@@ -632,7 +642,6 @@
                 try {
                     WeixinJSBridge.invoke('getNetworkType', {}, async function(res) {
                         try {
-                            audioPlayer.volume = volumeSlider.value / 100;
                             await audioPlayer.play();
                             isPlaying = true;
                             updatePlayState();
@@ -649,16 +658,18 @@
             // 策略2: 静音预播放
             try {
                 audioPlayerMuted.muted = true;
+                audioPlayerMuted.volume = 0;
                 await audioPlayerMuted.play();
-                log('静音预播放成功');
+                log('静音自动播放成功，等待用户交互解除静音');
                 
                 // 解除静音
                 setTimeout(() => {
                     audioPlayerMuted.muted = false;
-                    audioPlayerMuted.volume = volumeSlider.value / 100;
                     isPlaying = true;
                     updatePlayState();
-                    log('解除静音成功');
+                    log('解除静音后成功');
+                    document.removeEventListener('click', autoUnmute);
+                    document.removeEventListener('touchstart', autoUnmute);
                 }, 500);
             } catch (error) {
                 log('静音预播放失败: ' + error.message);
@@ -680,37 +691,6 @@
             }
         }
 
-        // 音量控制
-        function changeVolume(value) {
-            const volume = value / 100;
-            audioPlayer.volume = volume;
-            audioPlayerMuted.volume = volume;
-            volumeDisplay.textContent = value + '%';
-            
-            // 更新音量图标
-            if (value == 0) {
-                volumeIcon.innerHTML = `
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
-                        <path d="M16.5 12c0-1.77-1.02-3.29-2.5-4.03v2.21l2.45 2.45c.03-.2.05-.41.05-.63zm2.5 0c0 .94-.2 1.82-.54 2.64l1.51 1.51C20.63 14.91 21 13.5 21 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71zM4.27 3L3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06c1.38-.31 2.63-.95 3.69-1.81L19.73 21 21 19.73l-9-9L4.27 3zM12 4L9.91 6.09 12 8.18V4z"/>
-                    </svg>
-                `;
-            } else if (value < 50) {
-                volumeIcon.innerHTML = `
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
-                        <path d="M3 9v6h4l5 5V4L7 9H3zm7-.17v6.34L7.83 13H5v-2h2.83L10 8.83z"/>
-                    </svg>
-                `;
-            } else {
-                volumeIcon.innerHTML = `
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
-                        <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/>
-                    </svg>
-                `;
-            }
-            
-            log(`音量调整为: ${value}%`);
-        }
-
         // 进度条点击跳转
         function seekAudio(event) {
             if (audioPlayer.duration) {
@@ -724,6 +704,108 @@
                 updateProgress();
                 log(`跳转到: ${formatTime(newTime)}`);
             }
+        }
+
+        // 进度条触摸控制
+        function initTouchControls() {
+            let startX, startTime;
+            
+            progressBar.addEventListener('touchstart', function(e) {
+                if (!audioPlayer.duration) return;
+                
+                isSeeking = true;
+                startX = e.touches[0].clientX;
+                startTime = audioPlayer.currentTime;
+                
+                // 显示进度条拇指
+                progressThumb.style.opacity = 1;
+                
+                e.preventDefault();
+            });
+            
+            progressBar.addEventListener('touchmove', function(e) {
+                if (!isSeeking || !audioPlayer.duration) return;
+                
+                const rect = progressBar.getBoundingClientRect();
+                const touchX = e.touches[0].clientX - rect.left;
+                const percentage = Math.max(0, Math.min(1, touchX / rect.width));
+                
+                const newTime = percentage * audioPlayer.duration;
+                progressFill.style.width = (percentage * 100) + '%';
+                progressThumb.style.left = (percentage * 100) + '%';
+                currentTimeDisplay.textContent = formatTime(newTime);
+                
+                e.preventDefault();
+            });
+            
+            progressBar.addEventListener('touchend', function(e) {
+                if (!isSeeking || !audioPlayer.duration) return;
+                
+                const rect = progressBar.getBoundingClientRect();
+                const touchX = e.changedTouches[0].clientX - rect.left;
+                const percentage = Math.max(0, Math.min(1, touchX / rect.width));
+                
+                audioPlayer.currentTime = percentage * audioPlayer.duration;
+                audioPlayerMuted.currentTime = audioPlayer.currentTime;
+                
+                // 恢复进度条拇指状态
+                setTimeout(() => {
+                    progressThumb.style.opacity = 0;
+                }, 1000);
+                
+                isSeeking = false;
+                e.preventDefault();
+            });
+            
+            // 阻止iOS Safari的弹性滚动
+            document.addEventListener('touchmove', function(e) {
+                if (isSeeking) {
+                    e.preventDefault();
+                }
+            }, { passive: false });
+        }
+        
+        // 唱片手势控制
+        function initDiscGestures() {
+            let startX, startY, startTime;
+            let isSwiping = false;
+            
+            vinylDisc.addEventListener('touchstart', function(e) {
+                startX = e.touches[0].clientX;
+                startY = e.touches[0].clientY;
+                startTime = new Date().getTime();
+                isSwiping = false;
+            });
+            
+            vinylDisc.addEventListener('touchmove', function(e) {
+                if (Math.abs(e.touches[0].clientX - startX) > 10 || 
+                    Math.abs(e.touches[0].clientY - startY) > 10) {
+                    isSwiping = true;
+                }
+            });
+            
+            vinylDisc.addEventListener('touchend', function(e) {
+                const endTime = new Date().getTime();
+                const endX = e.changedTouches[0].clientX;
+                
+                if (!isSwiping && (endTime - startTime) < 300) {
+                    // 这是一个点击操作
+                    togglePlayPause();
+                } else if (isSwiping) {
+                    // 这是一个滑动操作
+                    const deltaX = endX - startX;
+                    
+                    if (Math.abs(deltaX) > 50) {
+                        if (deltaX > 0) {
+                            // 向右滑动，下一曲
+                            nextTrack();
+                        } else {
+                            // 向左滑动，上一曲
+                            previousTrack();
+                        }
+                    }
+                }
+            });
         }
 
         // 其他控制函数（占位符）
@@ -764,7 +846,6 @@
             } else {
                 // 非微信环境尝试直接播放
                 try {
-                    audioPlayer.volume = volumeSlider.value / 100;
                     audioPlayer.muted = false;
                     await audioPlayer.play();
                     isPlaying = true;
@@ -775,7 +856,6 @@
                     // 尝试静音播放策略
                     try {
                         audioPlayerMuted.muted = true;
-                        audioPlayerMuted.volume = 0;
                         await audioPlayerMuted.play();
                         log('静音自动播放成功，等待用户交互解除静音');
                         
@@ -783,7 +863,6 @@
                         const autoUnmute = () => {
                             if (!userInteracted) return;
                             audioPlayerMuted.muted = false;
-                            audioPlayerMuted.volume = volumeSlider.value / 100;
                             isPlaying = true;
                             updatePlayState();
                             log('用户交互后解除静音成功');
@@ -805,8 +884,9 @@
             log('页面加载完成');
             detectWeChatEnvironment();
             
-            // 设置默认音量
-            changeVolume(35);
+            // 初始化触摸控制
+            initTouchControls();
+            initDiscGestures();
             
             // 音频事件监听
             audioPlayer.addEventListener('loadedmetadata', () => {
@@ -841,6 +921,14 @@
             if (audioPlayer.readyState >= 1) {
                 setTimeout(autoPlay, 1000);
             }
+            
+            // 监听屏幕方向变化
+            window.addEventListener('resize', function() {
+                // 触发布局调整
+                setTimeout(() => {
+                    updateProgress();
+                }, 300);
+            });
             
             log('音乐播放器初始化完成');
         });
