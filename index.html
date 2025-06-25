@@ -89,7 +89,6 @@
             border-radius: 50%;
             border: 2px solid #ffca28;
             position: relative;
-            cursor: pointer;
             transition: all 0.3s ease;
         }
 
@@ -97,9 +96,7 @@
             animation: rotate 10s linear infinite;
         }
 
-        .vinyl-disc:hover {
-            transform: scale(1.02);
-        }
+
 
         /* 黑胶纹路 */
         .vinyl-groove {
@@ -167,14 +164,14 @@
             background: linear-gradient(to bottom, #ffd180, #ffb74d);
             border-radius: 2px;
             transform-origin: top center;
-            transform: rotate(30deg);
+            transform: rotate(18deg);
             transition: transform 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275);
             z-index: 10;
             box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.2);
         }
 
         .needle.playing {
-            transform: rotate(15deg);
+            transform: rotate(35deg);
         }
 
         /* 唱针头部 */
@@ -435,6 +432,77 @@
             }
         }
 
+        /* 歌词显示区域 */
+        .lyrics-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            /* 背景色与body > div一致 */
+            background: transparent;
+            /* 移除椭圆形状 */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            box-sizing: border-box;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.5s ease, visibility 0.5s ease;
+            cursor: pointer;
+            /* 移除背景模糊效果确保完全透明 */
+        }
+
+        .lyrics-container.show {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .lyrics-text {
+            text-align: center;
+            color: #333;
+            font-size: clamp(12px, 3vw, 16px);
+            line-height: 1.6;
+            max-height: 100%;
+            overflow-y: auto; /* 允许滚动 */
+            white-space: pre-line;
+            padding: 10px;
+            /* 渐隐效果：最上两行和最下两行渐隐 */
+            mask-image: linear-gradient(to bottom, transparent 0%, black 10%, black 90%, transparent 100%);
+            -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 10%, black 90%, transparent 100%);
+        }
+
+        /* 隐藏滚动条 */
+        .lyrics-text::-webkit-scrollbar {
+            width: 0;
+            background: transparent;
+        }
+
+        .lyrics-text::-webkit-scrollbar-thumb {
+            background: transparent;
+        }
+
+        /* 唱针隐藏样式 */
+        .needle.hide {
+            opacity: 0;
+            visibility: hidden;
+        }
+
+        /* 唱片区域点击效果 */
+        .vinyl-section {
+            cursor: pointer;
+        }
+
+        .vinyl-disc {
+            transition: opacity 0.5s ease, visibility 0.5s ease;
+        }
+
+        .vinyl-disc.hide {
+            opacity: 0;
+            visibility: hidden;
+        }
+
         /* 隐藏元素 */
         .hidden {
             display: none;
@@ -459,8 +527,8 @@
         </div>
 
         <!-- 黑胶唱片区域 -->
-        <div class="vinyl-section">
-            <div class="vinyl-disc" id="vinylDisc" onclick="togglePlayPause()">
+        <div class="vinyl-section" onclick="toggleLyrics()">
+            <div class="vinyl-disc" id="vinylDisc">
                 <!-- 黑胶纹路 -->
                 <div class="vinyl-groove groove-1"></div>
                 <div class="vinyl-groove groove-2"></div>
@@ -474,6 +542,13 @@
                 <!-- 专辑封面 -->
                 <div class="album-cover" id="albumCover">
                     🎵
+                </div>
+            </div>
+            
+            <!-- 歌词显示容器 -->
+            <div class="lyrics-container" id="lyricsContainer">
+                <div class="lyrics-text" id="lyricsText">
+                    暂无歌词
                 </div>
             </div>
             
@@ -537,477 +612,287 @@
         您的浏览器不支持音频播放。
     </audio>
 
-    <audio id="audioPlayerMuted" preload="auto" loop muted>
-        <source src="http://music.163.com/song/media/outer/url?id=2633499801.mp3" type="audio/mpeg">
-    </audio>
-
     <script>
-        // 全局变量
-        let audioPlayer = document.getElementById('audioPlayer');
-        let audioPlayerMuted = document.getElementById('audioPlayerMuted');
-        let isPlaying = false;
-        let userInteracted = false;
-        let isWeChatEnvironment = false;
-        let currentTime = 0;
-        let duration = 0;
-        let isSeeking = false;
-
-        // DOM元素
-        const vinylDisc = document.getElementById('vinylDisc');
-        const needle = document.getElementById('needle');
+        const audioPlayer = document.getElementById('audioPlayer');
+        const playPauseBtn = document.getElementById('playPauseBtn');
         const playIcon = document.getElementById('playIcon');
         const pauseIcon = document.getElementById('pauseIcon');
+        const vinylDisc = document.getElementById('vinylDisc');
+        const needle = document.getElementById('needle');
+        const progressBar = document.getElementById('progressBar');
         const progressFill = document.getElementById('progressFill');
         const progressThumb = document.getElementById('progressThumb');
-        const progressBar = document.getElementById('progressBar');
-        const currentTimeDisplay = document.getElementById('currentTime');
-        const totalTimeDisplay = document.getElementById('totalTime');
+        const currentTimeSpan = document.getElementById('currentTime');
+        const totalTimeSpan = document.getElementById('totalTime');
+        const albumCover = document.getElementById('albumCover');
+        const songTitle = document.getElementById('songTitle');
+        const lyricsContainer = document.getElementById('lyricsContainer');
+        const lyricsText = document.getElementById('lyricsText');
 
-        // 调试日志函数（仅在控制台输出）
-        function log(message) {
-            console.log(`[音乐播放器] ${new Date().toLocaleTimeString()}: ${message}`);
-        }
+        let isPlaying = false;
+        let isDragging = false;
+        let isLyricsVisible = false;
 
-        // 检测微信环境
-        function detectWeChatEnvironment() {
-            const userAgent = navigator.userAgent;
-            isWeChatEnvironment = userAgent.includes('MicroMessenger');
-            log(`环境检测: ${isWeChatEnvironment ? '微信环境' : '非微信环境'}`);
-            return isWeChatEnvironment;
-        }
+        // 示例歌曲信息
+        const songs = [
+            {
+                title: "Lemon Tree",
+                artist: "Fools Garden",
+                src: "http://music.163.com/song/media/outer/url?id=2633499801.mp3",
+                cover: "https://p2.music.126.net/VjF_g2t3n2b2h2h2h2h2hA==/109951163000000000.jpg",
+                lyrics: `
+                I'm sitting here in a boring room
+                It's just another rainy Sunday afternoon
+                I'm wasting my time
+                I got nothing to do
+                I'm hanging around
+                I'm waiting for you
+                But nothing ever happens
+                And I wonder
 
-        // 格式化时间
-        function formatTime(seconds) {
-            const mins = Math.floor(seconds / 60);
-            const secs = Math.floor(seconds % 60);
-            return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-        }
+                I'm driving around in my car
+                I'm driving too fast
+                I'm driving too far
+                I'd like to change my point of view
+                I feel so lonely
+                I'm waiting for you
+                But nothing ever happens
+                And I wonder
 
-        // 更新进度条
-        function updateProgress() {
-            if (audioPlayer.duration) {
-                currentTime = audioPlayer.currentTime;
-                duration = audioPlayer.duration;
-                
-                const progress = (currentTime / duration) * 100;
-                progressFill.style.width = progress + '%';
-                progressThumb.style.left = progress + '%';
-                
-                currentTimeDisplay.textContent = formatTime(currentTime);
-                totalTimeDisplay.textContent = formatTime(duration);
+                I wonder how
+                I wonder why
+                Yesterday you told me 'bout the blue blue sky
+                And all that I can see is just a yellow lemon tree
+                I'm turning my head up and down
+                I'm turning turning turning turning turning around
+                And all that I can see is just a yellow lemon tree
+
+                I'm sitting here
+                I miss the power
+                I'd like to go out
+                Taking a shower
+                But there's a heavy cloud inside my head
+                I feel so tired
+                Put myself into bed
+                Where nothing ever happens
+                And I wonder
+
+                Isolation is not good for me
+                Isolation I don't want to sit on the lemon tree
+                I'm steppin' around in a desert of joy
+                Baby anyhow I'll get another toy
+                And everything will happen
+                And you wonder
+
+                I wonder how
+                I wonder why
+                Yesterday you told me 'bout the blue blue sky
+                And all that I can see is just a yellow lemon tree
+                I'm turning my head up and down
+                I'm turning turning turning turning turning around
+                And all that I can see is just a yellow lemon tree
+
+                I wonder how
+                I wonder why
+                Yesterday you told me 'bout the blue blue sky
+                And all that I can see is just a yellow lemon tree
+                I'm turning my head up and down
+                I'm turning turning turning turning turning around
+                And all that I can see is just a yellow lemon tree
+                `
+            },
+            {
+                title: "晴天",
+                artist: "周杰伦",
+                src: "http://music.163.com/song/media/outer/url?id=186016.mp3",
+                cover: "https://p2.music.126.net/VjF_g2t3n2b2h2h2h2h2hA==/109951163000000000.jpg",
+                lyrics: `
+                故事的小黄花
+                从出生那年就飘着
+                童年的荡秋千
+                随记忆一直晃到现在
+                Re So So Si Do Si La
+                So La Si Si Si Si La Si La So
+                吹着前奏望着天空
+                我想起花瓣试着掉落
+                `
             }
-        }
+        ];
+        let currentSongIndex = 0;
 
-        // 播放/暂停切换
-        async function togglePlayPause() {
-            try {
-                if (isPlaying) {
-                    audioPlayer.pause();
-                    audioPlayerMuted.pause();
-                    isPlaying = false;
-                    vinylDisc.classList.remove('playing');
-                    needle.classList.remove('playing');
-                    playIcon.classList.remove('hidden');
-                    pauseIcon.classList.add('hidden');
-                    log('音乐已暂停');
-                } else {
-                    // 确保用户交互
-                    if (!userInteracted) {
-                        userInteracted = true;
-                        log('用户首次交互');
-                    }
-                    
-                    audioPlayer.muted = false;
-                    await audioPlayer.play();
-                    isPlaying = true;
-                    vinylDisc.classList.add('playing');
-                    needle.classList.add('playing');
-                    playIcon.classList.add('hidden');
-                    pauseIcon.classList.remove('hidden');
-                    log('音乐开始播放');
-                }
-            } catch (error) {
-                log('播放失败: ' + error.message);
-                // 尝试微信环境的播放策略
-                if (isWeChatEnvironment) {
-                    tryWeChatPlayback();
-                }
-            }
-        }
-
-        // 微信环境播放策略
-        async function tryWeChatPlayback() {
-            log('尝试微信播放策略');
-            
-            // 策略1: WeixinJSBridge
-            if (typeof WeixinJSBridge !== 'undefined') {
-                try {
-                    WeixinJSBridge.invoke('getNetworkType', {}, async function(res) {
-                        try {
-                            await audioPlayer.play();
-                            isPlaying = true;
-                            updatePlayState();
-                            log('微信JSBridge播放成功');
-                        } catch (error) {
-                            log('微信JSBridge播放失败: ' + error.message);
-                        }
-                    });
-                } catch (error) {
-                    log('微信JSBridge调用失败: ' + error.message);
-                }
-            }
-            
-            // 策略2: 静音预播放
-            try {
-                audioPlayerMuted.muted = true;
-                audioPlayerMuted.volume = 0;
-                await audioPlayerMuted.play();
-                log('静音自动播放成功，等待用户交互解除静音');
-                
-                // 解除静音
-                setTimeout(() => {
-                    // 停止辅助音频，改用主音频播放
-                    audioPlayerMuted.pause();
-                    audioPlayer.muted = false;
-                    audioPlayer.play().then(() => {
-                        isPlaying = true;
-                        updatePlayState();
-                        log('切换到主音频播放成功');
-                    }).catch(err => {
-                        log('切换到主音频失败: ' + err.message);
-                    });
-                    document.removeEventListener('click', autoUnmute);
-                    document.removeEventListener('touchstart', autoUnmute);
-                }, 500);
-            } catch (error) {
-                log('静音预播放失败: ' + error.message);
-            }
-        }
-
-        // 更新播放状态UI
-        function updatePlayState() {
-            if (isPlaying) {
-                vinylDisc.classList.add('playing');
-                needle.classList.add('playing');
-                playIcon.classList.add('hidden');
-                pauseIcon.classList.remove('hidden');
+        function loadSong(song) {
+            songTitle.textContent = song.title + ' - ' + song.artist;
+            audioPlayer.src = song.src;
+            if (song.cover) {
+                albumCover.innerHTML = `<img src="${song.cover}" alt="Album Cover">`;
             } else {
+                albumCover.innerHTML = '🎵';
+            }
+            // 加载歌词
+            lyricsText.textContent = song.lyrics || '暂无歌词';
+            // Reset progress bar
+            progressFill.style.width = '0%';
+            progressThumb.style.left = '0%';
+            currentTimeSpan.textContent = '00:00';
+            totalTimeSpan.textContent = '00:00';
+            // 隐藏歌词显示唱片
+            if (isLyricsVisible) {
+                toggleLyrics();
+            }
+        }
+
+        function togglePlayPause() {
+            if (isPlaying) {
+                audioPlayer.pause();
                 vinylDisc.classList.remove('playing');
                 needle.classList.remove('playing');
                 playIcon.classList.remove('hidden');
                 pauseIcon.classList.add('hidden');
+            } else {
+                audioPlayer.play();
+                vinylDisc.classList.add('playing');
+                needle.classList.add('playing');
+                playIcon.classList.add('hidden');
+                pauseIcon.classList.remove('hidden');
             }
+            isPlaying = !isPlaying;
         }
 
-        // 进度条点击跳转
-        function seekAudio(event) {
-            if (audioPlayer.duration) {
-                // 立即显示进度条拇指，提供视觉反馈
-                progressThumb.style.opacity = 1;
-                
-                const rect = event.currentTarget.getBoundingClientRect();
-                const clickX = (event.clientX || event.pageX) - rect.left;
-                const percentage = Math.max(0, Math.min(1, clickX / rect.width));
-                const newTime = percentage * audioPlayer.duration;
-                
-                // 立即更新UI，不等待音频事件
-                progressFill.style.width = (percentage * 100) + '%';
-                progressThumb.style.left = (percentage * 100) + '%';
-                currentTimeDisplay.textContent = formatTime(newTime);
-                
-                // 预先判断是否需要暂停后再跳转（大幅度跳转时）
-                const timeDiff = Math.abs(newTime - audioPlayer.currentTime);
-                const wasPlaying = !audioPlayer.paused;
-                
-                if (timeDiff > 5 && wasPlaying) {
-                    // 暂停并显示加载指示
-                    audioPlayer.pause();
-                    vinylDisc.style.opacity = "0.7";
-                    
-                    // 设置新的播放位置
-                    audioPlayer.currentTime = newTime;
-                    audioPlayerMuted.currentTime = newTime;
-                    
-                    // 设置短延迟后恢复播放
-                    setTimeout(() => {
-                        audioPlayer.play().then(() => {
-                            vinylDisc.style.opacity = "1";
-                        });
-                    }, 100);
-                } else {
-                    // 小跳转直接设置时间
-                    audioPlayer.currentTime = newTime;
-                    audioPlayerMuted.currentTime = newTime;
-                }
-                
-                // 隐藏拇指
-                setTimeout(() => {
-                    progressThumb.style.opacity = 0;
-                }, 1000);
-                
-                log(`跳转到: ${formatTime(newTime)}`);
+        audioPlayer.addEventListener('timeupdate', () => {
+            if (!isDragging) {
+                const progress = (audioPlayer.currentTime / audioPlayer.duration) * 100;
+                progressFill.style.width = `${progress}%`;
+                progressThumb.style.left = `${progress}%`;
+                currentTimeSpan.textContent = formatTime(audioPlayer.currentTime);
             }
+        });
+
+        audioPlayer.addEventListener('loadedmetadata', () => {
+            totalTimeSpan.textContent = formatTime(audioPlayer.duration);
+        });
+
+        audioPlayer.addEventListener('ended', () => {
+            nextTrack();
+        });
+
+        function formatTime(seconds) {
+            const minutes = Math.floor(seconds / 60);
+            const secs = Math.floor(seconds % 60);
+            return `${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
         }
 
-        // 进度条触摸控制
-        function initTouchControls() {
-            let startX, startTime;
-            
-            progressBar.addEventListener('touchstart', function(e) {
-                if (!audioPlayer.duration) return;
-                
-                isSeeking = true;
-                startX = e.touches[0].clientX;
-                startTime = audioPlayer.currentTime;
-                
-                // 显示进度条拇指
-                progressThumb.style.opacity = 1;
-                
-                // 暂停音频，减少延迟
-                if (!audioPlayer.paused) {
-                    audioPlayer.pause();
-                }
-                
-                e.preventDefault();
-            });
-            
-            progressBar.addEventListener('touchmove', function(e) {
-                if (!isSeeking || !audioPlayer.duration) return;
-                
-                const rect = progressBar.getBoundingClientRect();
-                const touchX = e.touches[0].clientX - rect.left;
-                const percentage = Math.max(0, Math.min(1, touchX / rect.width));
-                
-                const newTime = percentage * audioPlayer.duration;
-                progressFill.style.width = (percentage * 100) + '%';
-                progressThumb.style.left = (percentage * 100) + '%';
-                currentTimeDisplay.textContent = formatTime(newTime);
-                
-                e.preventDefault();
-            });
-            
-            progressBar.addEventListener('touchend', function(e) {
-                if (!isSeeking || !audioPlayer.duration) return;
-                
-                const rect = progressBar.getBoundingClientRect();
-                const touchX = e.changedTouches[0].clientX - rect.left;
-                const percentage = Math.max(0, Math.min(1, touchX / rect.width));
-                
-                // 设置时间
-                const newTime = percentage * audioPlayer.duration;
-                audioPlayer.currentTime = newTime;
-                audioPlayerMuted.currentTime = newTime;
-                
-                // 如果之前在播放，则恢复播放
-                if (isPlaying) {
-                    audioPlayer.play();
-                }
-                
-                // 恢复进度条拇指状态
-                setTimeout(() => {
-                    progressThumb.style.opacity = 0;
-                }, 1000);
-                
+        // Progress bar seeking
+        let isSeeking = false;
+
+        progressBar.addEventListener('mousedown', (e) => {
+            isSeeking = true;
+            updateSeek(e);
+        });
+
+        progressBar.addEventListener('mousemove', (e) => {
+            if (isSeeking) {
+                updateSeek(e);
+            }
+        });
+
+        progressBar.addEventListener('mouseup', () => {
+            isSeeking = false;
+        });
+
+        progressBar.addEventListener('mouseleave', () => {
+            if (isSeeking) {
                 isSeeking = false;
-                e.preventDefault();
-            });
-            
-            // 阻止iOS Safari的弹性滚动
-            document.addEventListener('touchmove', function(e) {
-                if (isSeeking) {
-                    e.preventDefault();
-                }
-            }, { passive: false });
-        }
-        
-        // 唱片手势控制
-        function initDiscGestures() {
-            let startX, startY, startTime;
-            let isSwiping = false;
-            
-            vinylDisc.addEventListener('touchstart', function(e) {
-                startX = e.touches[0].clientX;
-                startY = e.touches[0].clientY;
-                startTime = new Date().getTime();
-                isSwiping = false;
-            });
-            
-            vinylDisc.addEventListener('touchmove', function(e) {
-                if (Math.abs(e.touches[0].clientX - startX) > 10 || 
-                    Math.abs(e.touches[0].clientY - startY) > 10) {
-                    isSwiping = true;
-                }
-            });
-            
-            vinylDisc.addEventListener('touchend', function(e) {
-                const endTime = new Date().getTime();
-                const endX = e.changedTouches[0].clientX;
-                
-                if (!isSwiping && (endTime - startTime) < 300) {
-                    // 这是一个点击操作
-                    togglePlayPause();
-                } else if (isSwiping) {
-                    // 这是一个滑动操作
-                    const deltaX = endX - startX;
-                    
-                    if (Math.abs(deltaX) > 50) {
-                        if (deltaX > 0) {
-                            // 向右滑动，下一曲
-                            nextTrack();
-                        } else {
-                            // 向左滑动，上一曲
-                            previousTrack();
-                        }
-                    }
-                }
-            });
+            }
+        });
+
+        progressBar.addEventListener('touchstart', (e) => {
+            isSeeking = true;
+            updateSeek(e.touches[0]);
+        });
+
+        progressBar.addEventListener('touchmove', (e) => {
+            if (isSeeking) {
+                updateSeek(e.touches[0]);
+            }
+        });
+
+        progressBar.addEventListener('touchend', () => {
+            isSeeking = false;
+        });
+
+        function updateSeek(e) {
+            const rect = progressBar.getBoundingClientRect();
+            let x = e.clientX - rect.left;
+            if (e.touches && e.touches.length > 0) {
+                x = e.touches[0].clientX - rect.left;
+            }
+            const width = rect.width;
+            const percent = Math.max(0, Math.min(1, x / width));
+            audioPlayer.currentTime = audioPlayer.duration * percent;
+            progressFill.style.width = `${percent * 100}%`;
+            progressThumb.style.left = `${percent * 100}%`;
         }
 
-        // 其他控制函数（占位符）
-        function goBack() {
-            log('返回按钮点击');
-        }
-
-        function showMore() {
-            log('更多按钮点击');
-        }
-
-        function shuffleMusic() {
-            log('随机播放按钮点击');
+        function seekAudio(event) {
+            const rect = progressBar.getBoundingClientRect();
+            const clickX = event.clientX - rect.left;
+            const width = rect.width;
+            const duration = audioPlayer.duration;
+            const newTime = (clickX / width) * duration;
+            audioPlayer.currentTime = newTime;
         }
 
         function previousTrack() {
-            log('上一首按钮点击');
+            currentSongIndex = (currentSongIndex - 1 + songs.length) % songs.length;
+            loadSong(songs[currentSongIndex]);
+            if (isPlaying) {
+                audioPlayer.play();
+            }
         }
 
         function nextTrack() {
-            log('下一首按钮点击');
+            currentSongIndex = (currentSongIndex + 1) % songs.length;
+            loadSong(songs[currentSongIndex]);
+            if (isPlaying) {
+                audioPlayer.play();
+            }
+        }
+
+        function shuffleMusic() {
+            alert('随机播放功能待实现！');
         }
 
         function showPlaylist() {
-            log('播放列表按钮点击');
+            alert('播放列表功能待实现！');
         }
 
-        // 自动播放函数
-        async function autoPlay() {
-            log('尝试自动播放音乐');
+        function goBack() {
+            alert('返回功能待实现！');
+        }
+
+        function showMore() {
+            alert('更多功能待实现！');
+        }
+
+        // 切换歌词显示
+        function toggleLyrics() {
+            isLyricsVisible = !isLyricsVisible;
             
-            if (isWeChatEnvironment) {
-                // 微信环境使用专门的播放策略
-                const success = await tryWeChatPlayback();
-                if (!success) {
-                    log('微信环境自动播放失败，等待用户交互');
-                }
+            if (isLyricsVisible) {
+                // 显示歌词，隐藏唱片和唱针
+                vinylDisc.classList.add("hide");
+                needle.classList.add("hide");
+                lyricsContainer.classList.add("show");
             } else {
-                // 非微信环境尝试直接播放
-                try {
-                    audioPlayer.muted = false;
-                    await audioPlayer.play();
-                    isPlaying = true;
-                    updatePlayState();
-                    log('自动播放成功');
-                } catch (error) {
-                    log('自动播放失败: ' + error.message);
-                    // 尝试静音播放策略
-                    try {
-                        audioPlayerMuted.muted = true;
-                        await audioPlayerMuted.play();
-                        log('静音自动播放成功，等待用户交互解除静音');
-                        
-                        // 设置用户交互后解除静音
-                        const autoUnmute = () => {
-                            if (!userInteracted) return;
-                            // 停止辅助音频，改用主音频播放
-                            audioPlayerMuted.pause();
-                            audioPlayer.muted = false;
-                            audioPlayer.play().then(() => {
-                                isPlaying = true;
-                                updatePlayState();
-                                log('用户交互后切换到主音频播放成功');
-                            }).catch(err => {
-                                log('用户交互后切换主音频失败: ' + err.message);
-                            });
-                            document.removeEventListener('click', autoUnmute);
-                            document.removeEventListener('touchstart', autoUnmute);
-                        };
-                        
-                        document.addEventListener('click', autoUnmute);
-                        document.addEventListener('touchstart', autoUnmute);
-                    } catch (mutedError) {
-                        log('静音自动播放也失败: ' + mutedError.message);
-                    }
-                }
+                // 隐藏歌词，显示唱片和唱针
+                vinylDisc.classList.remove("hide");
+                needle.classList.remove("hide");
+                lyricsContainer.classList.remove("show");
             }
         }
 
-        // 初始化
-        window.addEventListener('load', function() {
-            log('页面加载完成');
-            detectWeChatEnvironment();
-            
-            // 初始化触摸控制
-            initTouchControls();
-            initDiscGestures();
-            
-            // 音频事件监听
-            audioPlayer.addEventListener('loadedmetadata', () => {
-                totalTimeDisplay.textContent = formatTime(audioPlayer.duration);
-                log('音频元数据加载完成');
-                // 音频加载完成后尝试自动播放
-                setTimeout(autoPlay, 500);
-            });
-            
-            audioPlayer.addEventListener('timeupdate', updateProgress);
-            
-            audioPlayer.addEventListener('ended', () => {
-                isPlaying = false;
-                updatePlayState();
-                log('音频播放结束');
-            });
-            
-            audioPlayer.addEventListener('error', (e) => {
-                log('音频加载错误: ' + (e.message || '未知错误'));
-            });
-            
-            // 微信环境特殊处理
-            if (isWeChatEnvironment) {
-                document.addEventListener('WeixinJSBridgeReady', function() {
-                    log('微信JS桥接准备就绪');
-                    // 微信桥接准备好后也尝试自动播放
-                    setTimeout(autoPlay, 300);
-                });
-            }
-            
-            // 如果音频已经有元数据，立即尝试自动播放
-            if (audioPlayer.readyState >= 1) {
-                setTimeout(autoPlay, 1000);
-            }
-            
-            // 监听屏幕方向变化
-            window.addEventListener('resize', function() {
-                // 触发布局调整
-                setTimeout(() => {
-                    updateProgress();
-                }, 300);
-            });
-            
-            log('音乐播放器初始化完成');
-        });
-
-        // 用户交互监听
-        document.addEventListener('click', () => {
-            if (!userInteracted) {
-                userInteracted = true;
-                log('用户首次交互');
-            }
-        });
-
-        document.addEventListener('touchstart', () => {
-            if (!userInteracted) {
-                userInteracted = true;
-                log('用户首次触摸交互');
-            }
-        });
+        // Initial load
+        loadSong(songs[currentSongIndex]);
     </script>
 </body>
 </html>
