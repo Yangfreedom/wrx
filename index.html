@@ -167,24 +167,41 @@
             background: linear-gradient(to bottom, #ffd180, #ffb74d);
             border-radius: 2px;
             transform-origin: top center;
-            transform: rotate(25deg);
-            transition: transform 0.5s ease-in-out;
+            transform: rotate(30deg);
+            transition: transform 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275);
             z-index: 10;
+            box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.2);
         }
 
         .needle.playing {
-            transform: rotate(20deg);
+            transform: rotate(15deg);
         }
 
+        /* 唱针头部 */
         .needle::before {
             content: '';
             position: absolute;
             top: -8px;
             left: -4px;
-            width: 12px;
-            height: 12px;
-            background: #999;
+            width: 14px;
+            height: 14px;
+            background: #ffa726;
             border-radius: 50%;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+        }
+        
+        /* 唱针折弯部分 */
+        .needle::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            width: 8px;
+            height: 25px;
+            background: linear-gradient(to bottom, #ffb74d, #ff9800);
+            border-radius: 4px 4px 2px 2px;
+            transform: translateX(-50%) rotate(-15deg);
+            transform-origin: bottom center;
         }
 
         /* 歌曲信息 */
@@ -197,16 +214,6 @@
             font-size: 18px;
             font-weight: 600;
             color: #333;
-            margin-bottom: 8px;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-
-        .artist-name {
-            font-size: 14px;
-            font-weight: 400;
-            color: #666;
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
@@ -380,10 +387,6 @@
                 font-size: 16px;
             }
             
-            .artist-name {
-                font-size: 12px;
-            }
-            
             .controls {
                 gap: 10px;
             }
@@ -481,7 +484,6 @@
         <!-- 歌曲信息 -->
         <div class="song-info">
             <div class="song-title" id="songTitle">音乐播放器</div>
-            <div class="artist-name" id="artistName">未知艺术家</div>
         </div>
 
         <!-- 进度条 -->
@@ -536,7 +538,7 @@
     </audio>
 
     <audio id="audioPlayerMuted" preload="auto" loop muted>
-        <source src="http://music.163.com/song/media/outer/url?id=2163210456.mp3" type="audio/mpeg">
+        <source src="http://music.163.com/song/media/outer/url?id=2633499801.mp3" type="audio/mpeg">
     </audio>
 
     <script>
@@ -664,10 +666,16 @@
                 
                 // 解除静音
                 setTimeout(() => {
-                    audioPlayerMuted.muted = false;
-                    isPlaying = true;
-                    updatePlayState();
-                    log('解除静音后成功');
+                    // 停止辅助音频，改用主音频播放
+                    audioPlayerMuted.pause();
+                    audioPlayer.muted = false;
+                    audioPlayer.play().then(() => {
+                        isPlaying = true;
+                        updatePlayState();
+                        log('切换到主音频播放成功');
+                    }).catch(err => {
+                        log('切换到主音频失败: ' + err.message);
+                    });
                     document.removeEventListener('click', autoUnmute);
                     document.removeEventListener('touchstart', autoUnmute);
                 }, 500);
@@ -694,14 +702,49 @@
         // 进度条点击跳转
         function seekAudio(event) {
             if (audioPlayer.duration) {
+                // 立即显示进度条拇指，提供视觉反馈
+                progressThumb.style.opacity = 1;
+                
                 const rect = event.currentTarget.getBoundingClientRect();
-                const clickX = event.clientX - rect.left;
-                const percentage = clickX / rect.width;
+                const clickX = (event.clientX || event.pageX) - rect.left;
+                const percentage = Math.max(0, Math.min(1, clickX / rect.width));
                 const newTime = percentage * audioPlayer.duration;
                 
-                audioPlayer.currentTime = newTime;
-                audioPlayerMuted.currentTime = newTime;
-                updateProgress();
+                // 立即更新UI，不等待音频事件
+                progressFill.style.width = (percentage * 100) + '%';
+                progressThumb.style.left = (percentage * 100) + '%';
+                currentTimeDisplay.textContent = formatTime(newTime);
+                
+                // 预先判断是否需要暂停后再跳转（大幅度跳转时）
+                const timeDiff = Math.abs(newTime - audioPlayer.currentTime);
+                const wasPlaying = !audioPlayer.paused;
+                
+                if (timeDiff > 5 && wasPlaying) {
+                    // 暂停并显示加载指示
+                    audioPlayer.pause();
+                    vinylDisc.style.opacity = "0.7";
+                    
+                    // 设置新的播放位置
+                    audioPlayer.currentTime = newTime;
+                    audioPlayerMuted.currentTime = newTime;
+                    
+                    // 设置短延迟后恢复播放
+                    setTimeout(() => {
+                        audioPlayer.play().then(() => {
+                            vinylDisc.style.opacity = "1";
+                        });
+                    }, 100);
+                } else {
+                    // 小跳转直接设置时间
+                    audioPlayer.currentTime = newTime;
+                    audioPlayerMuted.currentTime = newTime;
+                }
+                
+                // 隐藏拇指
+                setTimeout(() => {
+                    progressThumb.style.opacity = 0;
+                }, 1000);
+                
                 log(`跳转到: ${formatTime(newTime)}`);
             }
         }
@@ -719,6 +762,11 @@
                 
                 // 显示进度条拇指
                 progressThumb.style.opacity = 1;
+                
+                // 暂停音频，减少延迟
+                if (!audioPlayer.paused) {
+                    audioPlayer.pause();
+                }
                 
                 e.preventDefault();
             });
@@ -745,8 +793,15 @@
                 const touchX = e.changedTouches[0].clientX - rect.left;
                 const percentage = Math.max(0, Math.min(1, touchX / rect.width));
                 
-                audioPlayer.currentTime = percentage * audioPlayer.duration;
-                audioPlayerMuted.currentTime = audioPlayer.currentTime;
+                // 设置时间
+                const newTime = percentage * audioPlayer.duration;
+                audioPlayer.currentTime = newTime;
+                audioPlayerMuted.currentTime = newTime;
+                
+                // 如果之前在播放，则恢复播放
+                if (isPlaying) {
+                    audioPlayer.play();
+                }
                 
                 // 恢复进度条拇指状态
                 setTimeout(() => {
@@ -862,10 +917,16 @@
                         // 设置用户交互后解除静音
                         const autoUnmute = () => {
                             if (!userInteracted) return;
-                            audioPlayerMuted.muted = false;
-                            isPlaying = true;
-                            updatePlayState();
-                            log('用户交互后解除静音成功');
+                            // 停止辅助音频，改用主音频播放
+                            audioPlayerMuted.pause();
+                            audioPlayer.muted = false;
+                            audioPlayer.play().then(() => {
+                                isPlaying = true;
+                                updatePlayState();
+                                log('用户交互后切换到主音频播放成功');
+                            }).catch(err => {
+                                log('用户交互后切换主音频失败: ' + err.message);
+                            });
                             document.removeEventListener('click', autoUnmute);
                             document.removeEventListener('touchstart', autoUnmute);
                         };
